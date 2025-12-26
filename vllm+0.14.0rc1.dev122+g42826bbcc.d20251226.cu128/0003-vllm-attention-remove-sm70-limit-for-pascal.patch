@@ -1,0 +1,42 @@
+From 3e934db2a2570a80e1f525d8910ffd60e59f0a90 Mon Sep 17 00:00:00 2001
+From: shu1qin9 <shu1qin9@gmail.com>
+Date: Fri, 26 Dec 2025 16:20:09 +0800
+Subject: [PATCH] =?UTF-8?q?vLLM:=20=E5=85=A8=E9=9D=A2=E5=90=AF=E7=94=A8=20?=
+ =?UTF-8?q?Pascal=EF=BC=88CC=206.x=EF=BC=89=E6=94=AF=E6=8C=81?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+- CMakeLists.txt: 精简架构列表，仅保留 6.0/6.1，避免高版本编译器过滤 Pascal
+- moe_wna16.cu: 为 CC < 700 补充 __half 原子加实现，保证 MOE WNA16 内核可在 Pascal 正常跑通
+- prefix_prefill.py: 同步关闭 sm_70 以下限制，允许 6.x 设备进入前缀预填充路径
+
+至此，vLLM 0.14 可在 Compute Capability 6.0/6.1 显卡完整编译运行。
+---
+ vllm/attention/ops/prefix_prefill.py | 10 +++++++++-
+ 1 file changed, 9 insertions(+), 1 deletion(-)
+
+diff --git a/vllm/attention/ops/prefix_prefill.py b/vllm/attention/ops/prefix_prefill.py
+index f101d5c4a..7de5b75bb 100644
+--- a/vllm/attention/ops/prefix_prefill.py
++++ b/vllm/attention/ops/prefix_prefill.py
+@@ -10,7 +10,15 @@ from vllm.platforms import current_platform
+ from vllm.triton_utils import tl, triton
+ 
+ # Static kernels parameters
+-BASE_BLOCK = 128 if current_platform.has_device_capability(80) else 64
++if current_platform.get_device_capability() == (6, 0):  # P100 has 24 KB SM
++    BASE_BLOCK = 16
++elif current_platform.get_device_capability() == (6, 1):  # P40 has 48 KB SM
++    BASE_BLOCK = 32
++elif not current_platform.has_device_capability(80):
++    BASE_BLOCK = 64
++else:
++    BASE_BLOCK = 128
++
+ NUM_WARPS = 4 if current_platform.is_rocm() else 8
+ 
+ # To check compatibility
+-- 
+2.43.0
+

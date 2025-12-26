@@ -1,0 +1,38 @@
+From b4ecca322cf0b0f3e41b0e3161ba252eda74b176 Mon Sep 17 00:00:00 2001
+From: shu1qin9 <shu1qin9@gmail.com>
+Date: Fri, 26 Dec 2025 16:16:57 +0800
+Subject: [PATCH] =?UTF-8?q?triton:=20=E4=B8=BA=20Pascal=20=E6=9E=B6?=
+ =?UTF-8?q?=E6=9E=84=E5=90=AF=E7=94=A8=20fp16=E2=86=92fp32=20=E6=8F=90?=
+ =?UTF-8?q?=E5=8D=87=E5=B9=B6=E4=BF=AE=E5=A4=8D=E9=85=8D=E5=A5=97=E9=97=AE?=
+ =?UTF-8?q?=E9=A2=98?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+- AccelerateMatmul: 当源张量为 f16、目标提升类型为 f32 时，主动插入 arith.extf 扩展指令，
+  避免旧架构缺少原生 f16 MMA 时直接报错
+- python/src/ir.cc: 删除已失效的 LLVM setCurrentDebugTypes 调用，兼容高版本 LLVM
+- core.py: 临时将 eviction_policy 硬编码为空串，规避目前调度器对 Pascal 的兼容判断
+- setup.py: 移除对 libc++ 的强制依赖，减少旧系统编译失败概率
+
+综上改动，使得 Triton 3.6 在 Compute Capability 6.x 环境可正常编译运行。
+---
+ python/triton/language/core.py | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/python/triton/language/core.py b/python/triton/language/core.py
+index bf01d5bc1..519a5fb4f 100644
+--- a/python/triton/language/core.py
++++ b/python/triton/language/core.py
+@@ -2175,7 +2175,7 @@ def load(pointer, mask=None, other=None, boundary_check=(), padding_option="", c
+         other = _semantic.to_tensor(other)
+     padding_option = _unwrap_if_constexpr(padding_option)
+     cache_modifier = _unwrap_if_constexpr(cache_modifier)
+-    eviction_policy = _unwrap_if_constexpr(eviction_policy)
++    eviction_policy = _unwrap_if_constexpr("")
+     volatile = _unwrap_if_constexpr(volatile)
+     return _semantic.load(pointer, mask, other, boundary_check, padding_option, cache_modifier, eviction_policy,
+                           volatile)
+-- 
+2.43.0
+

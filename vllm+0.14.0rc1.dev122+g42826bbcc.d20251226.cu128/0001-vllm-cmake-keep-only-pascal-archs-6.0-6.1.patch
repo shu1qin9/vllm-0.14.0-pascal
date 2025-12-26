@@ -1,0 +1,43 @@
+From 3e934db2a2570a80e1f525d8910ffd60e59f0a90 Mon Sep 17 00:00:00 2001
+From: shu1qin9 <shu1qin9@gmail.com>
+Date: Fri, 26 Dec 2025 16:20:09 +0800
+Subject: [PATCH] =?UTF-8?q?vLLM:=20=E5=85=A8=E9=9D=A2=E5=90=AF=E7=94=A8=20?=
+ =?UTF-8?q?Pascal=EF=BC=88CC=206.x=EF=BC=89=E6=94=AF=E6=8C=81?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+- CMakeLists.txt: 精简架构列表，仅保留 6.0/6.1，避免高版本编译器过滤 Pascal
+- moe_wna16.cu: 为 CC < 700 补充 __half 原子加实现，保证 MOE WNA16 内核可在 Pascal 正常跑通
+- prefix_prefill.py: 同步关闭 sm_70 以下限制，允许 6.x 设备进入前缀预填充路径
+
+至此，vLLM 0.14 可在 Compute Capability 6.0/6.1 显卡完整编译运行。
+---
+ CMakeLists.txt | 11 +----------
+ 1 file changed, 1 insertion(+), 10 deletions(-)
+
+diff --git a/CMakeLists.txt b/CMakeLists.txt
+index c46fb18d7..00f255093 100644
+--- a/CMakeLists.txt
++++ b/CMakeLists.txt
+@@ -91,16 +91,7 @@ endif()
+ find_package(Torch REQUIRED)
+ 
+ # Supported NVIDIA architectures.
+-# This check must happen after find_package(Torch) because that's when CMAKE_CUDA_COMPILER_VERSION gets defined
+-if(DEFINED CMAKE_CUDA_COMPILER_VERSION AND
+-   CMAKE_CUDA_COMPILER_VERSION VERSION_GREATER_EQUAL 13.0)
+-  set(CUDA_SUPPORTED_ARCHS "7.5;8.0;8.6;8.7;8.9;9.0;10.0;11.0;12.0")
+-elseif(DEFINED CMAKE_CUDA_COMPILER_VERSION AND
+-   CMAKE_CUDA_COMPILER_VERSION VERSION_GREATER_EQUAL 12.8)
+-  set(CUDA_SUPPORTED_ARCHS "7.0;7.2;7.5;8.0;8.6;8.7;8.9;9.0;10.0;10.1;12.0")
+-else()
+-  set(CUDA_SUPPORTED_ARCHS "7.0;7.2;7.5;8.0;8.6;8.7;8.9;9.0")
+-endif()
++set(CUDA_SUPPORTED_ARCHS "6.0;6.1")
+ 
+ #
+ # Forward the non-CUDA device extensions to external CMake scripts.
+-- 
+2.43.0
+

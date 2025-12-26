@@ -1,0 +1,35 @@
+From d98f624e8bf76ce1397f4b2f00a935e700e4cee2 Mon Sep 17 00:00:00 2001
+From: shu1qin9 <shu1qin9@gmail.com>
+Date: Fri, 26 Dec 2025 16:10:24 +0800
+Subject: [PATCH] =?UTF-8?q?inductor:=20=E6=94=BE=E5=AE=BD=20Triton=20?=
+ =?UTF-8?q?=E5=AF=B9=20GPU=20=E6=9E=B6=E6=9E=84=E7=9A=84=E7=89=88=E6=9C=AC?=
+ =?UTF-8?q?=E9=99=90=E5=88=B6?=
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+- 将 CUDA Compute Capability 下限从 7.0 降至 6.0
+- 使 Pascal 架构（CC 6.x）显卡也能正常启用 Triton 后端
+- 涉及文件：
+  * torch/_inductor/scheduler.py
+  * torch/utils/_triton.py
+---
+ torch/utils/_triton.py | 2 +-
+ 1 file changed, 1 insertion(+), 1 deletion(-)
+
+diff --git a/torch/utils/_triton.py b/torch/utils/_triton.py
+index 7d545e82216..3c8557f0b84 100644
+--- a/torch/utils/_triton.py
++++ b/torch/utils/_triton.py
+@@ -132,7 +132,7 @@ def has_triton() -> bool:
+     from torch._dynamo.device_interface import get_interface_for_device
+ 
+     def cuda_extra_check(device_interface: Any) -> bool:
+-        return device_interface.Worker.get_device_properties().major >= 7
++        return device_interface.Worker.get_device_properties().major >= 6
+ 
+     def cpu_extra_check(device_interface: Any) -> bool:
+         import triton.backends
+-- 
+2.43.0
+
